@@ -1,26 +1,145 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Base colors */
+  --color-background: var(--color-neutral-light);
+  --color-foreground: var(--color-neutral-dark);
+  
+  /* Font variables */
   --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* UI component colors */
+  --color-primary: var(--color-primary-main);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-contrast: var(--color-primary-contrast);
+  
+  --color-secondary: var(--color-secondary-main);
+  --color-secondary-light: var(--color-secondary-light);
+  --color-secondary-dark: var(--color-secondary-dark);
+  --color-secondary-contrast: var(--color-secondary-contrast);
+  
+  --color-accent: var(--color-accent-main);
+  --color-accent-light: var(--color-accent-light);
+  --color-accent-dark: var(--color-accent-dark);
+  --color-accent-contrast: var(--color-accent-contrast);
+  
+  --color-success: var(--color-success-main);
+  --color-warning: var(--color-warning-main);
+  --color-error: var(--color-error-main);
+  
+  /* UI component derived colors */
+  --color-card: var(--color-neutral-light);
+  --color-card-foreground: var(--color-neutral-dark);
+  --color-popover: var(--color-neutral-light);
+  --color-popover-foreground: var(--color-neutral-dark);
+  --color-muted: var(--color-neutral-light);
+  --color-muted-foreground: var(--color-neutral-main);
+  --color-border: var(--color-neutral-main);
+  --color-input: var(--color-neutral-light);
+  --color-ring: var(--color-primary-main);
+  
+  /* Border radius */
+  --radius: var(--border-radius, 0.5rem);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 2);
+}
+
+/* Default theme values - these will be overridden by ThemeProvider */
+:root {
+  /* Theme colors with default values */
+  --color-primary-main: #3b82f6;
+  --color-primary-light: #93c5fd;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-contrast: #ffffff;
+  
+  --color-secondary-main: #6366f1;
+  --color-secondary-light: #a5b4fc;
+  --color-secondary-dark: #4338ca;
+  --color-secondary-contrast: #ffffff;
+  
+  --color-accent-main: #8b5cf6;
+  --color-accent-light: #c4b5fd;
+  --color-accent-dark: #6d28d9;
+  --color-accent-contrast: #ffffff;
+  
+  --color-neutral-main: #6b7280;
+  --color-neutral-light: #f3f4f6;
+  --color-neutral-dark: #1f2937;
+  --color-neutral-contrast: #ffffff;
+  
+  --color-success-main: #10b981;
+  --color-success-light: #a7f3d0;
+  --color-success-dark: #065f46;
+  --color-success-contrast: #ffffff;
+  
+  --color-warning-main: #f59e0b;
+  --color-warning-light: #fcd34d;
+  --color-warning-dark: #b45309;
+  --color-warning-contrast: #ffffff;
+  
+  --color-error-main: #ef4444;
+  --color-error-light: #fca5a5;
+  --color-error-dark: #b91c1c;
+  --color-error-contrast: #ffffff;
+  
+  /* Other theme values */
+  --border-radius: 0.5rem;
+  --font-heading: var(--font-geist-sans);
+  --font-body: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark mode overrides - these will be applied conditionally via theme provider */
+.dark {
+  --color-background: var(--color-neutral-dark);
+  --color-foreground: var(--color-neutral-light);
+  --color-card: var(--color-neutral-dark);
+  --color-card-foreground: var(--color-neutral-light);
+  --color-popover: var(--color-neutral-dark);
+  --color-popover-foreground: var(--color-neutral-light);
+  --color-muted: var(--color-neutral-dark);
+  --color-muted-foreground: var(--color-neutral-light);
+  --color-border: var(--color-neutral-main);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-[var(--color-border)] outline-[var(--color-ring)]/50;
+  }
+  body {
+    @apply bg-[var(--color-background)] text-[var(--color-foreground)] font-[var(--font-body)];
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-[var(--font-heading)];
+  }
+  code, pre {
+    @apply font-[var(--font-mono)];
+  }
+  
+  /* Theme-based styling for common elements */
+  .btn-primary {
+    @apply bg-[var(--color-primary)] text-[var(--color-primary-contrast)] hover:bg-[var(--color-primary-dark)] 
+           px-4 py-2 rounded-md transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-[var(--color-secondary)] text-[var(--color-secondary-contrast)] hover:bg-[var(--color-secondary-dark)]
+           px-4 py-2 rounded-md transition-colors;
+  }
+  
+  .btn-outline {
+    @apply border border-[var(--color-border)] bg-transparent hover:bg-[var(--color-neutral-light)]
+           dark:hover:bg-[var(--color-neutral-dark)] px-4 py-2 rounded-md transition-colors;
+  }
+  
+  .card {
+    @apply bg-[var(--color-card)] text-[var(--color-card-foreground)] rounded-lg p-6 shadow;
+  }
 }
