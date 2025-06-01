@@ -4,6 +4,50 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 
+// Build model-specific input parameters
+function buildModelInput(model: string, prompt: string, aspectRatio: string) {
+  const commonNegative = "nude, naked, nsfw, revealing, underwear, lingerie, swimsuit, bikini, bare skin, exposed, inappropriate, cartoon, illustration, CGI, 3d render, painting, sketch, bad anatomy, bad hands, deformed";
+  
+  const baseInput = {
+    prompt: prompt,
+    seed: Math.floor(Math.random() * 1000000)
+  };
+
+  // FLUX models (state-of-the-art 2024/2025)
+  if (model === 'flux-ultra') {
+    return {
+      ...baseInput,
+      raw: true, // Raw mode for hyper-realistic humans
+      aspect_ratio: aspectRatio || '3:4',
+      safety_tolerance: 3, // Allow fashion photography
+      guidance: 3.5, // Optimal for photorealism
+      steps: 28 // High quality steps
+    };
+  }
+  
+  if (model === 'flux-pro') {
+    return {
+      ...baseInput,
+      aspect_ratio: aspectRatio || '3:4',
+      guidance: 3, // FLUX Pro optimal range
+      steps: 25, // Good balance speed/quality
+      output_format: 'jpg'
+    };
+  }
+
+  // Legacy SDXL models (fallback)
+  return {
+    ...baseInput,
+    negative_prompt: commonNegative,
+    width: aspectRatio === '3:4' ? 768 : 1024,
+    height: aspectRatio === '3:4' ? 1024 : 768,
+    num_outputs: 1,
+    num_inference_steps: 30,
+    guidance_scale: 7,
+    scheduler: 'K_EULER_ANCESTRAL'
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { prompt, aspectRatio = '3:4', model = 'flux' } = await request.json();
@@ -25,13 +69,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`Starting AI model generation with ${model}`);
     
-    // Choose appropriate Replicate model
+    // Choose appropriate Replicate model - STATE-OF-THE-ART 2024/2025 models
     const replicateModels = {
-      'flux': 'black-forest-labs/flux-schnell', // Fast FLUX model
-      'stable-diffusion': 'stability-ai/stable-diffusion-3.5-large' // SD 3.5 Large
+      'flux-ultra': 'c6e5086a542c99e7e523a83d3017654e8618fe64ef427c772a1def05bb599f0c', // FLUX 1.1 Pro Ultra - Best quality, 4MP, Raw mode
+      'flux-pro': '1e237aa703bf3a8ab480d5b595563128807af649c50afc0b4f22a9174e90d1d6', // FLUX Pro - Excellent quality, faster
+      'ideogram': 'recraft/recraft-v3', // Ideogram v3 - Stunning realism
+      'juggernaut': '6a52feace43ce1f6bbc2cdabfc68423cb2319d7444a1a1dae529c5e88b976382' // Fallback
     };
     
-    const selectedModel = replicateModels[model as keyof typeof replicateModels] || replicateModels.flux;
+    // Try FLUX 1.1 Pro Ultra first (absolute best for photorealistic humans)
+    const selectedModel = replicateModels[model as keyof typeof replicateModels] || replicateModels['flux-ultra'];
 
     // Create prediction with model-specific parameters
     const response = await fetch('https://api.replicate.com/v1/predictions', {
@@ -42,16 +89,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         version: selectedModel,
-        input: {
-          prompt: prompt,
-          aspect_ratio: aspectRatio,
-          num_outputs: 1,
-          guidance: 3.5, // Good balance for fashion photography
-          num_inference_steps: model === 'flux' ? 4 : 28, // FLUX is faster
-          output_format: 'jpg',
-          output_quality: 95,
-          seed: Math.floor(Math.random() * 1000000)
-        }
+        input: buildModelInput(model, prompt, aspectRatio)
       }),
     });
 

@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
           garment_des: `A high-quality ${clothingType} that fits perfectly on the model`,
           is_checked: true,
           is_checked_crop: false,
-          denoise_steps: 30,
+          denoise_steps: 20, // Reduce from 30 to 20 for faster processing
+          guidance_scale: 1.5, // Reduce guidance for faster generation
           seed: Math.floor(Math.random() * 1000000)
         }
       }),
@@ -57,12 +58,12 @@ export async function POST(request: NextRequest) {
     // Poll for completion with progress tracking
     let result = prediction;
     let attempts = 0;
-    const maxAttempts = 90; // 3 minutes maximum for complex try-ons
+    const maxAttempts = 60; // 2 minutes maximum (reduced from 3)
     const startTime = Date.now();
     
     while (result.status === 'starting' || result.status === 'processing') {
       if (attempts >= maxAttempts) {
-        throw new Error('Generation timeout after 3 minutes - please try again');
+        throw new Error('Virtual try-on timeout after 2 minutes - please try again or check if images are valid');
       }
       
       // Progressive polling - faster initially, slower later

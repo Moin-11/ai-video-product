@@ -7,7 +7,7 @@ import { logger, createTimer } from '@/lib/utils/logger';
 interface AIModelGenerationParams {
   prompt: string;
   aspectRatio?: '1:1' | '3:4' | '4:3' | '16:9';
-  model?: 'flux' | 'stable-diffusion';
+  model?: 'flux-ultra' | 'flux-pro' | 'ideogram' | 'juggernaut';
 }
 
 /**
@@ -17,7 +17,7 @@ export async function generateAIModel(params: AIModelGenerationParams): Promise<
   const timer = createTimer('AI model generation');
   
   try {
-    logger.info('Starting AI model generation with FLUX');
+    logger.info('Starting AI model generation with FLUX 1.1 Pro Ultra');
     
     const response = await fetch('/api/generate-model', {
       method: 'POST',
@@ -27,7 +27,7 @@ export async function generateAIModel(params: AIModelGenerationParams): Promise<
       body: JSON.stringify({
         prompt: params.prompt,
         aspectRatio: params.aspectRatio || '3:4',
-        model: params.model || 'flux'
+        model: params.model || 'flux-ultra'
       }),
     });
 
@@ -42,7 +42,7 @@ export async function generateAIModel(params: AIModelGenerationParams): Promise<
       throw new Error(result.error || 'No model image generated');
     }
     
-    logger.info(`AI model generation completed in ${result.processingTime}s`);
+    logger.info(`AI model generation completed in ${result.processingTime}s using ${result.metadata?.model || 'FLUX 1.1 Pro Ultra'}`);
     timer.stop();
     
     return result.imageUrl;

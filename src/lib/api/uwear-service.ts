@@ -14,6 +14,8 @@ import {
   CameraOptions 
 } from "@/lib/types-uwear";
 import { logger } from "@/lib/utils/logger";
+import { generateAIModel } from "./integrations/ai-model-generator";
+import { createBudgetVirtualTryOn } from "./integrations/virtual-tryon-ai";
 
 // Storage key for local project tracking
 const STORAGE_KEY = "uwear_projects";
@@ -415,8 +417,8 @@ function buildIntelligentPrompt(
     'back': 'back view pose, showing rear garment details'
   };
 
-  // Build the base prompt with ecommerce focus
-  const basePrompt = `professional fashion photography, ${options.gender} ${options.ethnicity} model, ${options.age} years old, ${options.bodyType} build, ${clothingContext[clothingType] || 'confident standing pose'}, ${angleContext[cameraAngle] || 'front facing'}, clean studio background, commercial photography quality, high resolution, professional lighting, ecommerce product photography style`;
+  // Build photorealistic prompt optimized for RealVisXL - emphasize clothing and professional context
+  const basePrompt = `photorealistic professional fashion model, ${options.gender} ${options.ethnicity} person, ${options.age} years old, ${options.bodyType} body type, wearing business casual clothing, ${clothingContext[clothingType] || 'confident standing pose'}, ${angleContext[cameraAngle] || 'front facing'}, fully clothed, professional attire, clean minimal white backdrop, commercial fashion photography, ecommerce product photography, fashion catalog photo, high quality photo, detailed realistic skin, natural lighting, professional model pose, shot with 85mm lens, soft studio lighting, fashion photography, sharp focus, 8k resolution`;
   
   // Add custom instructions naturally if provided
   if (customInstructions?.trim()) {
@@ -498,7 +500,7 @@ async function startProcessing(
     logger.info(`Starting virtual try-on generation for ${projectId}`);
     
     // Step 1: Generate AI model or use template
-    let modelImageUrl: string;
+    let modelImageUrl: string = "";
     
     if (project.templateImageUrl) {
       // Use uploaded template
@@ -518,13 +520,32 @@ async function startProcessing(
         
         logger.info(`AI Model Prompt: ${modelPrompt}`);
         
-        // Generate AI model using FLUX or Stable Diffusion
-        const { generateAIModel } = await import("./integrations/ai-model-generator");
+        // Try multiple models for best photorealistic results - STATE-OF-THE-ART first
+        const modelPriority = ['flux-ultra', 'flux-pro', 'juggernaut'];
         
-        modelImageUrl = await generateAIModel({
-          prompt: modelPrompt,
-          aspectRatio: project.cameraOptions.zoom === 'full-body' ? '3:4' : '1:1'
-        });
+        for (const modelType of modelPriority) {
+          try {
+            logger.info(`Attempting AI model generation with ${modelType}`);
+            
+            modelImageUrl = await generateAIModel({
+              prompt: modelPrompt,
+              aspectRatio: project.cameraOptions.zoom === 'full-body' ? '3:4' : '1:1',
+              model: modelType as any
+            });
+            
+            logger.info(`Successfully generated model with ${modelType}`);
+            break; // Success, exit the loop
+            
+          } catch (modelError: any) {
+            logger.error(`${modelType} failed: ${modelError.message}`);
+            
+            if (modelType === modelPriority[modelPriority.length - 1]) {
+              // This is the last model, re-throw the error
+              throw modelError;
+            }
+            // Continue to next model
+          }
+        }
         
         logger.info("AI model generation completed successfully");
         
@@ -539,8 +560,6 @@ async function startProcessing(
     }
     
     // Step 2: Create virtual try-on using Replicate AI
-    const { createBudgetVirtualTryOn } = await import("./integrations/virtual-tryon-ai");
-    
     const generatedImageUrl = await createBudgetVirtualTryOn(
       project.clothingImageUrl,
       modelImageUrl,
