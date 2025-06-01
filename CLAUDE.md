@@ -1,28 +1,28 @@
-# ShowReel v1: Architecture and Implementation Guide
+# ShowReel v1: Budget-Optimized Architecture Guide
 
 ## Project Overview
 
-ShowReel v1 is an AI-powered product video generator with these key features:
+ShowReel v1 is a cost-efficient AI-powered product video generator with these key features:
 
 1. Users upload product images and select product categories
 2. System removes image backgrounds automatically
-3. System generates AI mannequin images via DALL-E 3
-4. System creates marketing copy using GPT-4o-mini
-5. System renders a complete 15-second video using Runway Gen-2
+3. System selects appropriate mannequin photos from curated CC0 collection
+4. System creates marketing copy using GPT-4o-mini with Semrush AI fallback
+5. System renders a complete 15-second video using FFCreator (open-source)
 6. Video includes text overlays with marketing copy
-7. Users can purchase credits to generate videos
+7. Ultra-low monthly costs (under $15/month vs $200+/month)
 
-## Tech Stack
+## Cost-Optimized Tech Stack
 
 - **Frontend**: React with TypeScript + Tailwind CSS + ShadcnUI
-- **Backend**: Firebase (Firestore, Functions, Storage, Auth)
-- **Payment**: Stripe integration via Firebase Extensions
-- **AI APIs**:
-  - Background Removal: ClipDrop API
-  - Mannequin Generation: DALL-E 3 via OpenAI API
-  - Copy Generation: GPT-4o-mini
-  - Video Processing: Runway Gen-2 + FFmpeg for text overlays
-- **Deployment**: Firebase Hosting
+- **Backend**: Firebase (Storage, optional Functions) + Client-side processing
+- **Payment**: Stripe integration (Phase 3)
+- **AI Services**:
+  - Virtual Try-On: Replicate IDM-VTON model (streamlined single provider)
+  - Model Database: High-quality professional models from Unsplash (free)
+  - Copy Generation: GPT-4o-mini + Semrush AI fallback (3 free/day)
+  - Video Processing: FFCreator (open-source)
+- **Deployment**: Firebase Hosting (free tier) + Render.com (750 free hours/month)
 
 ## System Architecture
 
@@ -85,36 +85,38 @@ Stored in `projects/{projectId}` collection, this document tracks the state of t
   - `createdAt`: Creation timestamp
   - `updatedAt`: Last update timestamp
 
-## Processing Pipeline
+## Budget-Optimized Processing Pipeline
 
-The video generation follows this processing pipeline:
+The cost-efficient video generation follows this pipeline:
 
-1. **Project Creation** (`firebase/functions/src/projects/create.ts`)
+1. **Project Creation** (`src/lib/api/project-service.ts`)
    - User uploads product image
    - Image stored in Firebase Storage
    - Project document created with 'pending' status
 
-2. **Background Removal** (`firebase/functions/src/projects/background.ts`)
-   - ClipDrop API removes the image background
+2. **Background Removal** (`src/lib/api/integrations/clipdrop.ts`)
+   - ClipDrop API removes the image background (existing)
+   - Alternative: Photoroom API (10 free/month)
    - Transparent PNG saved to Storage
    - Project status updated to 'processing-mannequin'
 
-3. **Mannequin Generation** (`firebase/functions/src/projects/mannequin.ts`)
-   - DALL-E 3 generates model image based on product type
-   - Generated image saved to Storage
+3. **Mannequin Selection** (`src/lib/api/integrations/mannequin-photos.ts`)
+   - Selects appropriate CC0 stock photo from curated collection
+   - Organized by product type (t-shirt, hoodie, mug, etc.)
+   - No API costs - completely free
    - Project status updated to 'processing-script'
 
-4. **Script Generation** (`firebase/functions/src/projects/script.ts`)
-   - GPT-4o-mini generates marketing copy
+4. **Script Generation** (`src/lib/api/integrations/openai.ts` + `semrush-ai.ts`)
+   - Primary: GPT-4o-mini generates marketing copy
+   - Fallback: Semrush AI (3 free requests/day) if OpenAI fails
    - Creates headline, bullets, CTA, and suggested color palette
    - Project status updated to 'rendering'
 
-5. **Video Generation** (`firebase/functions/src/projects/video.ts`)
-   - Creates composite image of product on mannequin
-   - Runway Gen-2 creates video animation
-   - FFmpeg adds text overlays from generated script
-   - Final video saved to Storage
-   - Signed URL generated for user access
+5. **Video Generation** (`src/lib/api/integrations/ffcreator-video.ts`)
+   - Canvas API creates composite image of product on mannequin
+   - FFCreator generates video with text overlays (open-source)
+   - No per-video costs unlike Runway Gen-2
+   - Final video created as downloadable MP4
    - Project status updated to 'complete'
 
 ## User Experience Flow
@@ -185,37 +187,62 @@ The application is deployed using Firebase Hosting with the following configurat
    - Uses Firebase Extensions for Stripe integration
    - Configured webhooks for payment events
 
-## Development Workflow: Core First Approach
+## Development Workflow: Budget-First Approach
 
-1. **Phase 1: Core Video Creation Pipeline**
-   - Implement minimal Firebase setup (Storage and Functions)
-   - Create basic upload interface without authentication
-   - Develop core AI pipeline with all four services:
-     - Background removal
-     - Mannequin generation
-     - Script generation
-     - Video creation
-   - Build simple results viewer
+1. **Phase 1: Core Video Creation Pipeline (Current)**
+   - ✅ Implement minimal Firebase setup (Storage only)
+   - ✅ Create basic upload interface without authentication
+   - ✅ Develop budget-optimized AI pipeline:
+     - ✅ Background removal (ClipDrop)
+     - ✅ Mannequin photos (CC0 collection)
+     - ✅ Script generation (OpenAI + Semrush fallback)
+     - ✅ Video creation (FFCreator)
+   - ✅ Build simple results viewer
 
 2. **Phase 2: User Management and Polish**
-   - Add user authentication
-   - Implement project tracking in Firestore
-   - Build dashboard for multiple projects
-   - Add results sharing and download capabilities
+   - 🔄 Add user authentication (Firebase Auth)
+   - 🔄 Implement project tracking in Firestore
+   - 🔄 Build dashboard for multiple projects
+   - 🔄 Enhanced image compositing (server-side FFCreator)
+   - 🔄 Expanded CC0 photo library
 
 3. **Phase 3: Monetization and Scale**
-   - Implement Stripe payment integration
-   - Add credit system
-   - Scale Firebase functions for production load
-   - Optimize costs and performance
+   - 📋 Implement Stripe payment integration
+   - 📋 Add credit system (when volume justifies)
+   - 📋 Premium AI features (if ROI positive)
+   - 📋 Advanced video templates and customization
 
-## Future Enhancements
+## Cost Analysis & Future Enhancements
 
-Potential enhancements for future versions:
+### Monthly Cost Breakdown
 
-1. Additional product types and mannequin poses
-2. Custom branding options (logos, colors)
+**Streamlined Replicate Stack:**
+- Virtual Try-On: Replicate IDM-VTON ~$0.50 per generation
+- Model Database: $0 (Professional Unsplash photos)
+- Marketing Copy: GPT-4o-mini ~$5-10/month + Semrush $0 (3 free/day)
+- Video Generation: $0 (FFCreator open-source)
+- Hosting: Firebase $0 + Render.com $0 (free tiers)
+- **Total: $0.50 per generation + $5-10/month baseline**
+
+**Cost Per Generation:**
+- Replicate virtual try-on: $0.50 per high-quality generation
+- Predictable per-use pricing model
+- No complex fallback chains or Canvas alternatives
+- **Premium quality with transparent costs**
+
+### Future Enhancements (When Budget Allows)
+
+**Enhanced Replicate Features:**
+1. Additional IDM-VTON model parameters and fine-tuning
+2. Multi-angle generation for single clothing items
+3. Batch processing for multiple model variations
+4. Enhanced garment description prompts
+5. Quality upscaling and post-processing
+
+**Premium Features (ROI-Dependent):**
+1. Custom branding options (logos, colors)
+2. Premium AI mannequin generation (when volume justifies)
 3. Advanced video editing capabilities
-4. AI-powered product descriptions
-5. Multi-product showcase videos
-6. Analytics for video performance
+4. Multi-product showcase videos
+5. Analytics for video performance
+6. White-label solutions

@@ -168,10 +168,61 @@ export default function ProcessingTracker({
             />
           </div>
 
+          {/* Show images as they're processed */}
+          {(project.transparentImageUrl || project.mannequinImageUrl || project.compositeImageUrl) && (
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-semibold">Processing Results</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Original/Transparent Image */}
+                {project.transparentImageUrl && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-[var(--color-neutral-main)]">Background Removed</p>
+                    <div className="bg-[var(--color-neutral-light)] dark:bg-[var(--color-neutral-dark)] rounded-lg overflow-hidden aspect-square">
+                      <img
+                        src={project.transparentImageUrl}
+                        alt="Product with background removed"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Mannequin Image */}
+                {project.mannequinImageUrl && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-[var(--color-neutral-main)]">Mannequin Selected</p>
+                    <div className="bg-[var(--color-neutral-light)] dark:bg-[var(--color-neutral-dark)] rounded-lg overflow-hidden aspect-square">
+                      <img
+                        src={project.mannequinImageUrl}
+                        alt="Mannequin"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Composite Image */}
+                {project.compositeImageUrl && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-[var(--color-neutral-main)]">Product on Mannequin</p>
+                    <div className="bg-[var(--color-neutral-light)] dark:bg-[var(--color-neutral-dark)] rounded-lg overflow-hidden aspect-square">
+                      <img
+                        src={project.compositeImageUrl}
+                        alt="Product on mannequin"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Estimated time */}
           <div className="text-center text-sm text-[var(--color-neutral-main)]">
             Estimated time remaining: {project.status === "rendering" ? "1-5" : project.status === "processing-mannequin" ? "1-3" : "1-2"} minutes
-            <p className="text-xs mt-1 text-[var(--color-neutral-main)]">Using real AI APIs which may take several minutes</p>
+            <p className="text-xs mt-1 text-[var(--color-neutral-main)]">Using budget-optimized AI services</p>
           </div>
         </div>
       )}

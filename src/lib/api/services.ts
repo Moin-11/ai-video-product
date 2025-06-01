@@ -7,11 +7,13 @@ import { logger, logProcessingStep, createTimer } from "@/lib/utils/logger";
 import { uploadFile, getProjectStoragePath } from "@/lib/storage";
 import {
   removeImageBackground,
-  generateMannequinImage,
-  checkMidjourneyTaskStatus,
+  getMannequinPhoto,
+  getMannequinPhotoUrl,
   generateMarketingScript,
-  generateVideo,
-  checkRunwayTaskStatus,
+  generateMarketingScriptWithSemrush,
+  isSemrushAvailable,
+  generateVideoWithFFCreator,
+  checkVideoStatus,
   addTextOverlayToVideo,
   createCompositeImage,
   fetchImageAsBuffer,
@@ -111,43 +113,10 @@ export async function generateMannequin(projectId: string): Promise<void> {
     const shouldUseRealApis = getEnvApiMode();
     
     if (shouldUseRealApis) {
-      // Generate mannequin with Midjourney API
-      mannequinTaskId = await generateMannequinImage(project.productType);
-      
-      // Store the task ID for polling
-      updateProjectData(projectId, { mannequinTaskId });
-      
-      // Poll for completion (in production, this would be a Cloud Function with Task Queue)
-      // Here we'll use a simple polling mechanism
-      const maxPolls = 30;
-      const pollInterval = 10000; // 10 seconds
-      
-      for (let i = 0; i < maxPolls; i++) {
-        // Wait before checking
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        
-        // Check status
-        const result = await checkMidjourneyTaskStatus(mannequinTaskId);
-        
-        if (result.status === 'completed' && result.imageUrl) {
-          // Download image and upload to our storage
-          const imageResponse = await axios.get(result.imageUrl, { responseType: 'arraybuffer' });
-          const blob = new Blob([imageResponse.data], { type: 'image/jpeg' });
-          const file = new File([blob], 'mannequin.jpg', { type: 'image/jpeg' });
-          
-          // Upload to storage
-          const storagePath = getProjectStoragePath(projectId, 'mannequin');
-          mannequinImageUrl = await uploadFile(file, storagePath);
-          break;
-        } else if (result.status === 'failed') {
-          throw new Error(result.error || 'Mannequin generation failed');
-        }
-        
-        // If we've reached the max polls and not completed, throw an error
-        if (i === maxPolls - 1) {
-          throw new Error('Mannequin generation timed out');
-        }
-      }
+      // Select mannequin photo from CC0 collection (budget-friendly approach)
+      const mannequinPhoto = await getMannequinPhoto(project.productType);
+      mannequinImageUrl = getMannequinPhotoUrl(mannequinPhoto);
+      mannequinTaskId = mannequinPhoto.id; // Use photo ID as task ID
     } else {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, getRandomTime(
@@ -198,12 +167,25 @@ export async function generateScript(projectId: string): Promise<void> {
     const shouldUseRealApis = getEnvApiMode();
     
     if (shouldUseRealApis) {
-      // Generate marketing script with GPT-4o-mini
-      script = await generateMarketingScript({
-        productName: project.productName,
-        productType: project.productType,
-        productDescription: project.productDescription
-      });
+      // Try GPT-4o-mini first, fallback to Semrush if needed
+      try {
+        script = await generateMarketingScript({
+          productName: project.productName,
+          productType: project.productType,
+          productDescription: project.productDescription
+        });
+      } catch (error) {
+        // Fallback to Semrush AI if available
+        if (isSemrushAvailable()) {
+          script = await generateMarketingScriptWithSemrush({
+            productName: project.productName,
+            productType: project.productType,
+            productDescription: project.productDescription
+          });
+        } else {
+          throw error;
+        }
+      }
     } else {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, getRandomTime(
@@ -262,39 +244,27 @@ export async function processVideo(projectId: string): Promise<void> {
         project.transparentImageUrl
       );
       
-      // Generate video with Runway
-      runwayGenerationId = await generateVideo(compositeImageUrl, project.productType);
+      // Generate video with FFCreator (budget-friendly approach)
+      const taskId = await generateVideoWithFFCreator({
+        productImageUrl: project.transparentImageUrl,
+        mannequinImageUrl: project.mannequinImageUrl,
+        script: project.script,
+        productType: project.productType,
+        duration: 15
+      });
       
-      // Store the task ID for polling
+      runwayGenerationId = taskId; // Store for compatibility
       updateProjectData(projectId, { runwayGenerationId });
       
-      // Poll for completion (in production, this would be a Cloud Function with Task Queue)
-      // Here we'll use a simple polling mechanism
-      const maxPolls = 30;
-      const pollInterval = 15000; // 15 seconds
+      // Check video status (FFCreator is much faster)
+      const result = await checkVideoStatus(taskId);
       
-      for (let i = 0; i < maxPolls; i++) {
-        // Wait before checking
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        
-        // Check status
-        const result = await checkRunwayTaskStatus(runwayGenerationId);
-        
-        if (result.status === 'COMPLETED' && result.videoUrl) {
-          // Get the raw video
-          let rawVideoUrl = result.videoUrl;
-          
-          // Add text overlays to the video
-          videoUrl = await addTextOverlayToVideo(rawVideoUrl, project.script);
-          break;
-        } else if (result.status === 'FAILED') {
-          throw new Error(result.error || 'Video generation failed');
-        }
-        
-        // If we've reached the max polls and not completed, throw an error
-        if (i === maxPolls - 1) {
-          throw new Error('Video generation timed out');
-        }
+      if (result.status === 'completed' && result.videoUrl) {
+        videoUrl = result.videoUrl;
+      } else if (result.status === 'failed') {
+        throw new Error(result.error || 'Video generation failed');
+      } else {
+        throw new Error('Video generation incomplete');
       }
     } else {
       // Simulate API delay

@@ -1,27 +1,46 @@
 /**
  * Export all integration APIs for easier imports
+ * Updated for budget-optimized architecture
  */
 
-// Export ClipDrop integration
+// Export ClipDrop integration (background removal)
 export { removeImageBackground } from './clipdrop';
 
-// Export DALL-E integration for mannequin generation
+// Export budget-friendly mannequin photos (replaces DALL-E)
 export { 
-  generateMannequinImage, 
-  checkMidjourneyTaskStatus  // Kept for backward compatibility
-} from './midjourney';
+  getMannequinPhoto, 
+  getMannequinPhotoUrl,
+  listMannequinPhotos,
+  getRandomMannequinPhoto,
+  type MannequinPhoto
+} from './mannequin-photos';
 
-// Export OpenAI integration
+// Export OpenAI integration with fallback
 export { 
   generateMarketingScript, 
   type Script 
 } from './openai';
 
-// Export Runway integration
-export { 
-  generateVideo, 
-  checkRunwayTaskStatus 
-} from './runway';
+// Export Semrush AI fallback
+export {
+  generateMarketingScriptWithSemrush,
+  isSemrushAvailable,
+  getSemrushRemainingRequests,
+  resetSemrushUsage
+} from './semrush-ai';
+
+// Export FFCreator video generation (replaces Runway)
+export {
+  generateVideoWithFFCreator,
+  checkVideoStatus,
+  createVideoTemplate,
+  generateVideoPreview,
+  type VideoGenerationParams,
+  type VideoGenerationResult
+} from './ffcreator-video';
+
+// Legacy services removed - use FFCreator instead
+// export { generateVideo, checkRunwayTaskStatus } from './runway';
 
 // Export Text Overlay utilities
 export { 

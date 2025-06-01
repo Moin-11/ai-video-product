@@ -1,0 +1,153 @@
+/**
+ * DALL-E API integration for mannequin generation using OpenAI
+ */
+import { logger, createTimer } from "@/lib/utils/logger";
+import { v4 as uuidv4 } from "uuid";
+import { storage } from "@/firebase/config";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import OpenAI from "openai";
+import axios from "axios";
+
+// Interface for task status response
+interface MidjourneyTaskStatus {
+  id: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  imageUrl?: string;
+  error?: string;
+}
+
+/**
+ * Generate a mannequin image using DALL-E 3
+ *
+ * @param productType Type of product to generate a mannequin for
+ * @param gender Optional gender specification for the mannequin (default: neutral)
+ * @returns Promise resolving to a task ID (which is actually the image URL in DALL-E's case)
+ */
+export async function generateMannequinImage(
+  productType: string,
+  gender: "male" | "female" | "neutral" = "neutral"
+): Promise<string> {
+  const timer = createTimer("DALL-E mannequin generation");
+
+  try {
+    logger.info(`Requesting mannequin generation for ${productType}`);
+
+    // Get API key from environment
+    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    // Initialize OpenAI client with browser permission
+    const openai = new OpenAI({
+      apiKey,
+      dangerouslyAllowBrowser: true, // Required for client-side usage
+    });
+
+    // Create DALL-E prompt based on product type and gender
+    const prompt = createMannequinPrompt(productType, gender);
+    logger.info(`DALL-E prompt: ${prompt}`);
+
+    // Log the request details for debugging
+    logger.info("DALL-E request params:", {
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+    });
+
+    // Call OpenAI API to generate image
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+      response_format: "url",
+    });
+
+    // Extract image URL from response (with type checking)
+    const imageUrl = response.data[0]?.url;
+    if (!imageUrl) {
+      throw new Error("No image URL returned from DALL-E");
+    }
+
+    logger.info(`DALL-E generated image URL: ${imageUrl}`);
+
+    // Download image and upload to Firebase Storage for persistent storage
+    const imageResponse = await axios.get(imageUrl, {
+      responseType: "arraybuffer",
+    });
+    const imageBuffer = imageResponse.data;
+
+    // Upload to Firebase
+    const fileName = `mannequin_${uuidv4()}.png`;
+    const storageRef = ref(storage, `images/${fileName}`);
+    const blob = new Blob([imageBuffer], { type: "image/png" });
+
+    await uploadBytes(storageRef, blob);
+    const firebaseUrl = await getDownloadURL(storageRef);
+
+    logger.info(`Mannequin image stored at: ${firebaseUrl}`);
+    timer.stop();
+
+    return firebaseUrl;
+  } catch (error: any) {
+    // Enhanced error handling for better debugging
+    logger.error("DALL-E API error details:", error);
+    
+    let errorMsg = "DALL-E API error: ";
+    
+    // Check for OpenAI specific error structure
+    if (error?.response?.data) {
+      errorMsg += `${error.response.status} ${JSON.stringify(error.response.data)}`;
+    } else if (error?.error?.message) {
+      errorMsg += error.error.message;
+    } else if (error?.message) {
+      errorMsg += error.message;
+    } else {
+      errorMsg += "Unknown error occurred";
+    }
+
+    logger.error(errorMsg);
+    timer.stop();
+    throw new Error(errorMsg);
+  }
+}
+
+/**
+ * Check DALL-E task status - Not needed as DALL-E returns immediately
+ * This is kept for compatibility with existing code structure
+ */
+export async function checkMidjourneyTaskStatus(
+  taskId: string
+): Promise<MidjourneyTaskStatus> {
+  // This is only for compatibility - DALL-E doesn't use task IDs as it returns image URLs directly
+  return {
+    id: taskId,
+    status: "completed",
+    imageUrl: taskId, // For compatibility, we're using the task ID which is actually the image URL
+  };
+}
+
+// Helper function to create mannequin prompt based on product type
+function createMannequinPrompt(productType: string, gender: string): string {
+  // Create simple, safe prompts for each product type
+  switch (productType.toLowerCase()) {
+    case "t-shirt":
+      return "A plain white t-shirt displayed on a simple mannequin torso, professional product photography, white background";
+    case "hoodie":
+      return "A plain white hoodie displayed on a simple mannequin torso, professional product photography, white background";
+    case "tote bag":
+      return "A plain white canvas tote bag hanging on a display stand, professional product photography, white background";
+    case "mug":
+      return "A plain white ceramic coffee mug on a clean white table, professional product photography, white background";
+    case "phone case":
+      return "A plain white phone case displayed on a stand, professional product photography, white background";
+    case "poster":
+      return "A blank white poster frame on a white wall, professional product photography, minimalist style";
+    default:
+      return `A plain white ${productType} displayed professionally, product photography, white background`;
+  }
+}

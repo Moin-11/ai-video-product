@@ -9,13 +9,12 @@ import { v4 as uuidv4 } from "uuid";
 
 /**
  * Create a composite image by overlaying a product on a mannequin
- * 
- * For now, we're keeping this simple by just using the mannequin image
- * In a production app, we would implement proper image compositing
+ * This is a placeholder that returns the mannequin URL
+ * Actual compositing happens client-side with Canvas API
  * 
  * @param mannequinUrl URL of the mannequin image
  * @param productUrl URL of the transparent product image
- * @returns URL of the composite image
+ * @returns URL of the composite image (for now, just mannequin)
  */
 export async function createCompositeImage(
   mannequinUrl: string,
@@ -26,13 +25,11 @@ export async function createCompositeImage(
   try {
     logger.info('Creating composite image from mannequin and product');
     
-    // For now, we'll just return the mannequin URL
-    // In a real implementation, we would:
-    // 1. Download both images
-    // 2. Use Canvas API to overlay the transparent product on the mannequin
-    // 3. Upload the result to Firebase Storage
+    // Note: Actual compositing is done client-side in project-service.ts
+    // using the Canvas API for better performance and no server costs
+    // This function is kept for backward compatibility
     
-    logger.info('Composite image creation completed');
+    logger.info('Returning mannequin URL for compositing');
     timer.stop();
     
     return mannequinUrl;

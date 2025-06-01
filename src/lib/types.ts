@@ -20,7 +20,10 @@ export interface Project {
   originalImageUrl: string;      // Original upload URL
   transparentImageUrl?: string;  // Background removed image
   mannequinImageUrl?: string;    // Generated mannequin image
-  mannequinTaskId?: string;      // Midjourney task ID
+  mannequinTaskId?: string;      // Midjourney task ID (legacy)
+  mannequinPhotoId?: string;     // CC0 photo ID (new approach)
+  compositeImageUrl?: string;    // Product on mannequin composite
+  ffcreatorTaskId?: string;      // FFCreator task ID (new approach)
   
   // Generated content
   script?: {

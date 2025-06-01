@@ -52,10 +52,24 @@ export default function VideoPreview({ project, onBackToUpload }: VideoPreviewPr
           src={project.videoUrl}
           controls
           className="w-full h-full object-contain"
-          poster={project.mannequinImageUrl}
+          poster={project.compositeImageUrl || project.mannequinImageUrl}
           autoPlay
         />
       </div>
+      
+      {/* Show composite image if available */}
+      {project.compositeImageUrl && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-4">Product on Mannequin</h3>
+          <div className="bg-[var(--color-neutral-light)] dark:bg-[var(--color-neutral-dark)] rounded-lg overflow-hidden">
+            <img
+              src={project.compositeImageUrl}
+              alt={`${project.productName} on mannequin`}
+              className="w-full h-auto object-contain max-h-96"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Marketing copy generated */}
       {project.script && (
